@@ -49,7 +49,7 @@ def replace_placeholders(doc, replacements):
         if not runs:
             return
 
-        # Собираем полный текст и позиции Run
+        # Собираем полный текст и позиции
         full_text = []
         run_positions = []
         current_pos = 0
@@ -66,7 +66,7 @@ def replace_placeholders(doc, replacements):
             if key not in full_text:
                 continue
 
-            # Найти все вхождения ключа
+            # Поиск ключей
             start_idx = 0
             while True:
                 start_idx = full_text.find(key, start_idx)
@@ -74,7 +74,7 @@ def replace_placeholders(doc, replacements):
                     break
                 end_idx = start_idx + len(key)
 
-                # Определить, какие Run затронуты
+                # Определяем, какие позиции затронуты
                 affected_runs = []
                 for i, (s, e) in enumerate(run_positions):
                     if s <= start_idx < e or s < end_idx <= e or (start_idx < s and end_idx > e):
@@ -84,18 +84,18 @@ def replace_placeholders(doc, replacements):
                     start_idx += 1
                     continue
 
-                # Замена текста с сохранением стиля первого Run
+                # Замена текста с сохранением стиля первой позиции
                 first_run_idx = affected_runs[0]
                 first_run = runs[first_run_idx]
                 text_before = full_text[:start_idx]
                 text_after = full_text[end_idx:]
                 new_text = text_before + value + text_after
 
-                # Очистить все Run и распределить новый текст
+                # Очистить все позиции и распределить новый текст
                 for run in runs:
                     run.text = ''
 
-                # Сохраняем стиль первого Run и вставляем новый текст
+                # Сохраняем стиль первой позиции и вставляем новый текст
                 first_run.text = new_text
 
                 # Обновить данные для следующей итерации
@@ -104,7 +104,7 @@ def replace_placeholders(doc, replacements):
                 break
 
         if modified:
-            # Удаляем пустые Run (если остались)
+            # Удаляем пустые позиции (если остались)
             for run in runs[::-1]:
                 if not run.text:
                     p = run._element
