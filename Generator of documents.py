@@ -1,11 +1,13 @@
 # Импорт необходимых библиотек
-import pandas as pd
+import os
+import re
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
+
+import pandas as pd
 from docx import Document
-import re
-import os
+
 
 # Функция для парсинга диапазона строк
 def parse_row_range(row_range_str):
@@ -42,48 +44,88 @@ def determine_template(cell_content, template_dir):
 
 # Функция для замены конструкций в документе
 def replace_placeholders(doc, replacements):
-    for paragraph in doc.paragraphs:
-        for key, value in replacements.items():
-            if key in paragraph.text:
-                inline = paragraph.runs
-                # Проходим по всем Run в параграфе
-                for i in range(len(inline)):
-                    if key in inline[i].text:
-                        text = inline[i].text.replace(key, value)
-                        inline[i].text = text
+    def process_paragraph(paragraph, replacements):
+        runs = paragraph.runs
+        if not runs:
+            return
 
-    # Замена текста в заголовках и сносках
+        # Собираем полный текст и позиции Run
+        full_text = []
+        run_positions = []
+        current_pos = 0
+        for run in runs:
+            text = run.text
+            full_text.append(text)
+            run_positions.append((current_pos, current_pos + len(text)))
+            current_pos += len(text)
+
+        full_text = ''.join(full_text)
+        modified = False
+
+        for key, value in replacements.items():
+            if key not in full_text:
+                continue
+
+            # Найти все вхождения ключа
+            start_idx = 0
+            while True:
+                start_idx = full_text.find(key, start_idx)
+                if start_idx == -1:
+                    break
+                end_idx = start_idx + len(key)
+
+                # Определить, какие Run затронуты
+                affected_runs = []
+                for i, (s, e) in enumerate(run_positions):
+                    if s <= start_idx < e or s < end_idx <= e or (start_idx < s and end_idx > e):
+                        affected_runs.append(i)
+
+                if not affected_runs:
+                    start_idx += 1
+                    continue
+
+                # Замена текста с сохранением стиля первого Run
+                first_run_idx = affected_runs[0]
+                first_run = runs[first_run_idx]
+                text_before = full_text[:start_idx]
+                text_after = full_text[end_idx:]
+                new_text = text_before + value + text_after
+
+                # Очистить все Run и распределить новый текст
+                for run in runs:
+                    run.text = ''
+
+                # Сохраняем стиль первого Run и вставляем новый текст
+                first_run.text = new_text
+
+                # Обновить данные для следующей итерации
+                full_text = new_text
+                modified = True
+                break
+
+        if modified:
+            # Удаляем пустые Run (если остались)
+            for run in runs[::-1]:
+                if not run.text:
+                    p = run._element
+                    p.getparent().remove(p)
+
+    # Обработка всех параграфов
+    for paragraph in doc.paragraphs:
+        process_paragraph(paragraph, replacements)
+
+    # Обработка заголовков, футеров и таблиц (аналогично)
     for section in doc.sections:
-        header = section.header
-        footer = section.footer
-        for paragraph in header.paragraphs:
-            for key, value in replacements.items():
-                if key in paragraph.text:
-                    inline = paragraph.runs
-                    for i in range(len(inline)):
-                        if key in inline[i].text:
-                            text = inline[i].text.replace(key, value)
-                            inline[i].text = text
-        for paragraph in footer.paragraphs:
-            for key, value in replacements.items():
-                if key in paragraph.text:
-                    inline = paragraph.runs
-                    for i in range(len(inline)):
-                        if key in inline[i].text:
-                            text = inline[i].text.replace(key, value)
-                            inline[i].text = text
-    # Замена в таблицах
+        for paragraph in section.header.paragraphs:
+            process_paragraph(paragraph, replacements)
+        for paragraph in section.footer.paragraphs:
+            process_paragraph(paragraph, replacements)
+
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
                 for paragraph in cell.paragraphs:
-                    for key, value in replacements.items():
-                        if key in paragraph.text:
-                            inline = paragraph.runs
-                            for i in range(len(inline)):
-                                if key in inline[i].text:
-                                    text = inline[i].text.replace(key, value)
-                                    inline[i].text = text
+                    process_paragraph(paragraph, replacements)
 
 # Функция для генерации имени документа
 def generate_document_name(first_word_input, cell_content, template_path):
@@ -283,9 +325,9 @@ class DocumentGeneratorApp:
 
                     # Заменяем конструкции
                     replacements = {
-                        '7-13-C': cellC,
-                        '7-14-B': cellB,
-                        '7-15-A': cellA
+                        '7-13cellC': cellC,
+                        '7-14cellB': cellB,
+                        '7-15cellA': cellA
                     }
                     replace_placeholders(doc, replacements)
 
