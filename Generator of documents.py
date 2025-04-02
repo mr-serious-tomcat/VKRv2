@@ -283,9 +283,9 @@ class DocumentGeneratorApp:
 
                     # Заменяем конструкции
                     replacements = {
-                        '7-13': cellC,
-                        '7-14': cellB,
-                        '7-15': cellA
+                        '7-13-C': cellC,
+                        '7-14-B': cellB,
+                        '7-15-A': cellA
                     }
                     replace_placeholders(doc, replacements)
 
