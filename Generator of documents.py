@@ -34,7 +34,6 @@ def determine_template(cell_content, template_dir):
     elif first_word.startswith("распоряжение"):
         template_file_name = "ЭЗ распоряжение ШИ.docx" if has_construction else "ЭЗ распоряжение ШО.docx"
 
-    template_path = os.path.join(template_dir, template_file_name)
     # Ищем шаблон без учета регистра
     for file in os.listdir(template_dir):
         if file.lower() == template_file_name.lower():
@@ -106,7 +105,7 @@ def generate_document_name(first_word_input, cell_content, template_path):
     date_found = date_found.group(0) if date_found else ''
 
     # Находим первую конструкцию '№...'
-    num_found = re.search(r'№\s*([^\s\)\(]+)', cell_content)
+    num_found = re.search(r'№\s*([^\s)(]+)', cell_content)
     num_found = num_found.group(0) if num_found else ''
 
     additional_construction = ''
@@ -129,6 +128,7 @@ def replace_forbidden_characters(file_name):
 # Класс приложения
 class DocumentGeneratorApp:
     def __init__(self, master):
+        self.sheet_combo = None
         self.master = master
         master.title("Генератор документов")
         master.geometry("530x400")
