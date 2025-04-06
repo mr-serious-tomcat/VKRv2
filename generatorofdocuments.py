@@ -172,7 +172,7 @@ class DocumentGeneratorApp:
     def __init__(self, master):
         self.sheet_combo = None
         self.master = master
-        master.title("Генератор документов")
+        master.title("Генератор экспертных заключений")
         master.geometry("530x400")
 
         # Переменные
